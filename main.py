@@ -1,21 +1,24 @@
-from models import *
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
+from models import *
+from routers import auth, products, warehouses
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CoreInventory API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins for hackathon
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-Base.metadata.create_all(bind=engine)
-
-# Import all routers later here
+app.include_router(auth.router)
+app.include_router(products.router)
+app.include_router(warehouses.router)
 
 @app.get("/")
 def root():
