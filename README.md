@@ -48,19 +48,19 @@ CoreInventory is a modern warehouse management system that tracks every stock mo
 ![Dashboard](readme_images/Dashboard.png)
 
 > **Products — Catalogue with Real-Time Stock Levels**
-<!-- Add screenshot here: ![Products](screenshots/products.png) -->
+![Products](readme_images/Product.png) 
 
 > **Receipts — Incoming Goods Management**
-<!-- Add screenshot here: ![Receipts](screenshots/receipts.png) -->
+![Receipts](readme_images/Reciept.png)
 
 > **Deliveries — Outgoing Goods with Stock Validation**
-<!-- Add screenshot here: ![Deliveries](screenshots/deliveries.png) -->
+![Deliveries](readme_images/Deliveries.png) 
 
 > **Move History — Full Ledger Audit Trail**
-<!-- Add screenshot here: ![Move History](screenshots/move-history.png) -->
+![Move History](readme_images/MoveHistory.png)
 
 > **Settings — Warehouse & Location Management**
-<!-- Add screenshot here: ![Settings](screenshots/settings.png) -->
+![Settings](readme_images/Settings.png) 
 
 > ℹ️ To add screenshots, place your image files in a `screenshots/` folder and uncomment the lines above.
 
