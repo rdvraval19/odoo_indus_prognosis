@@ -170,10 +170,10 @@ odoo_indus_prognosis/
 
 | Member | Role | Responsibilities | LinkedIn |
 |---|---|---|---|
-| Dipak Raval | Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Dipak Raval | Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/rdvraval19) |
 | Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
-| Simran Patra | Frontend — Operations | Receipts, Deliveries, Move History pages | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
-| Prachi Parmar | Frontend — Settings | Settings, Transfer, Adjustment, Seed data | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Simran Patra | Frontend — Operations | Receipts, Deliveries, Move History pages | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)]([https://linkedin.com/in/your-link-here](https://www.linkedin.com/in/simran-patra)) |
+| Prachi Parmar | Frontend — Settings | Settings, Transfer, Adjustment, Seed data | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)]([https://linkedin.com/in/your-link-here](https://www.linkedin.com/in/prachiparmar737)) |
 
 ---
 
