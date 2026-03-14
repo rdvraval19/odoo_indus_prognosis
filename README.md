@@ -1,12 +1,13 @@
 # CoreInventory — Warehouse Management System
 
-A full-stack inventory management system built for the Indus Hackathon. Manage warehouses, locations, products, receipts, deliveries, internal transfers and stock adjustments — all in one place.
+A full-stack inventory management system built for the **Indus Hackathon 2026**. Manage warehouses, locations, products, receipts, deliveries, internal transfers and stock adjustments — all in one place.
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Demo](#demo)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -18,14 +19,50 @@ A full-stack inventory management system built for the Indus Hackathon. Manage w
 - [API Documentation](#api-documentation)
 - [Inventory Flow](#inventory-flow)
 - [Pages & Routes](#pages--routes)
+- [Database Models](#database-models)
 - [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
+- [License](#license)
 
 ---
 
 ## Overview
 
 CoreInventory is a modern warehouse management system that tracks every stock movement through a complete ledger trail. It supports multi-warehouse operations, real-time low stock alerts, and a clean dashboard showing all inventory KPIs at a glance.
+
+---
+
+## Demo
+
+### 🎬 Video Walkthrough
+[![Watch Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://your-video-link-here)
+
+### 📊 Presentation
+[![View PPT](https://img.shields.io/badge/View-Presentation-orange?style=for-the-badge&logo=microsoftpowerpoint)](https://your-ppt-link-here)
+
+---
+
+### 📸 Screenshots
+
+> **Dashboard — KPIs & Low Stock Alerts**
+<!-- Add screenshot here: ![Dashboard](screenshots/dashboard.png) -->
+
+> **Products — Catalogue with Real-Time Stock Levels**
+<!-- Add screenshot here: ![Products](screenshots/products.png) -->
+
+> **Receipts — Incoming Goods Management**
+<!-- Add screenshot here: ![Receipts](screenshots/receipts.png) -->
+
+> **Deliveries — Outgoing Goods with Stock Validation**
+<!-- Add screenshot here: ![Deliveries](screenshots/deliveries.png) -->
+
+> **Move History — Full Ledger Audit Trail**
+<!-- Add screenshot here: ![Move History](screenshots/move-history.png) -->
+
+> **Settings — Warehouse & Location Management**
+<!-- Add screenshot here: ![Settings](screenshots/settings.png) -->
+
+> ℹ️ To add screenshots, place your image files in a `screenshots/` folder and uncomment the lines above.
 
 ---
 
@@ -130,12 +167,12 @@ odoo_indus_prognosis/
 
 ## Team Members
 
-| Member | Role | Responsibilities |
-|---|---|---|
-| Dipak Raval| Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats |
-| Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page |
-| Simran Patra| Frontend — Operations | Receipts, Deliveries, Move History pages |
-| Prachi Parmar | Frontend — Settings  | Settings, Transfer, Adjustment, Seed data |
+| Member | Role | Responsibilities | LinkedIn |
+|---|---|---|---|
+| Dipak Raval | Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Simran Patra | Frontend — Operations | Receipts, Deliveries, Move History pages | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Prachi Parmar | Frontend — Settings | Settings, Transfer, Adjustment, Seed data | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
 
 ---
 
@@ -232,7 +269,7 @@ Password: demo1234
 
 Full interactive docs available at `http://localhost:8000/docs` when the backend is running.
 
-### Key endpoints
+### Key Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -302,26 +339,6 @@ Every action writes to the **StockLedger** table — the Move History page shows
 
 ---
 
-## Environment Variables
-
-### Frontend — `frontend/.env`
-
-```
-VITE_API_URL=http://localhost:8000
-```
-
-```
-
-### Backend — Railway dashboard Variables
-
-```
-DATABASE_URL=sqlite:///./prod.db
-SECRET_KEY=your-long-random-secret-key
-```
-
----
-
-
 ## Database Models
 
 | Model | Description |
@@ -336,10 +353,36 @@ SECRET_KEY=your-long-random-secret-key
 | DeliveryLine | delivery_id, product_id, qty |
 | StockLedger | product_id, from_location, to_location, qty_delta, type, ref_id, timestamp, user_id |
 
-Stock is never stored directly on the Product — it is always calculated as `SUM(qty_delta)` from the StockLedger. This ensures a complete and tamper-evident audit trail.
+> Stock is never stored directly on the Product — it is always calculated as `SUM(qty_delta)` from the StockLedger. This ensures a complete and tamper-evident audit trail.
+
+---
+
+## Environment Variables
+
+### Frontend — `frontend/.env`
+
+```
+VITE_API_URL=http://localhost:8000
+```
+
+### Backend — Railway Dashboard Variables
+
+```
+DATABASE_URL=sqlite:///./prod.db
+SECRET_KEY=your-long-random-secret-key
+```
+
+---
+
+## Deployment
+
+The app is deployed on **Railway**. Push to the main branch to trigger automatic deployment.
+
+- Backend service: set `DATABASE_URL` and `SECRET_KEY` in Railway dashboard
+- Frontend service: set `VITE_API_URL` pointing to the deployed backend URL
 
 ---
 
 ## License
 
-Built for Indus Hackathon 2026. All rights reserved.
+Built for **Indus Hackathon 2026**. All rights reserved.
