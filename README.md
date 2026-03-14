@@ -35,10 +35,10 @@ CoreInventory is a modern warehouse management system that tracks every stock mo
 ## Demo
 
 ### 🎬 Video Walkthrough
-[![Watch Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://your-video-link-here)
+[![Watch Demo Video]([https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://your-video-link-here](https://drive.google.com/file/d/145mq6nVT3s3YekjPhct1HzRpkRWNXeIz/view?usp=drive_link))
 
 ### 📊 Presentation
-[![View PPT](https://img.shields.io/badge/View-Presentation-orange?style=for-the-badge&logo=microsoftpowerpoint)](https://your-ppt-link-here)
+[![View PPT](https://img.shields.io/badge/View-Presentation-orange?style=for-the-badge&logo=microsoftpowerpoint)]([https://your-ppt-link-here](https://drive.google.com/file/d/1vHqwbY70CDkhI6gIJM-EDF3a8nNmXxgB/view?usp=drive_link))
 
 ---
 
