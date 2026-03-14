@@ -1,419 +1,134 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../api/axios";
+import { useEffect, useState } from 'react';
+import api from '../api/axios';
 
-// ─────────────────────────────────────────────
-// Empty form state — used to reset after submit
-// ─────────────────────────────────────────────
-const EMPTY = {
-  product_id:    "",
-  from_location: "",
-  to_location:   "",
-  qty:           "",
-};
+const EMPTY = { product_id: '', from_location_id: '', to_location_id: '', quantity: '' };
 
 export default function Transfer() {
-  // products   = list of all products from API
-  // locations  = list of all locations from API
-  // form       = controlled form inputs
-  // msg        = success or error message to show user
-  // busy       = true while API call is in progress (prevents double submit)
-  // loading    = true while fetching products and locations on mount
-  const [products,  setProducts]  = useState([]);
+  const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [form,      setForm]      = useState(EMPTY);
-  const [msg,       setMsg]       = useState(null); // { type: "success"|"error", text: "..." }
-  const [busy,      setBusy]      = useState(false);
-  const [loading,   setLoading]   = useState(true);
+  const [form, setForm] = useState(EMPTY);
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate();
-
-  // ─────────────────────────────────────────────
-  // LOAD products and locations when page mounts
-  // Both calls run at the same time with Promise.all
-  // ─────────────────────────────────────────────
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [prodRes, locRes] = await Promise.all([
-          api.get("/products"),
-          api.get("/locations"),
-        ]);
-        setProducts(prodRes.data);
-        setLocations(locRes.data);
-      } catch (err) {
-        setMsg({
-          type: "error",
-          text: "Failed to load products or locations. Is the backend running?",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    Promise.all([api.get('/products/'), api.get('/locations')])
+      .then(([p, l]) => { setProducts(p.data); setLocations(l.data); })
+      .catch(() => setMsg({ type: 'error', text: 'Failed to load data' }))
+      .finally(() => setLoading(false));
   }, []);
 
-  // ─────────────────────────────────────────────
-  // DERIVED VALUES
-  // ─────────────────────────────────────────────
+  const selected = products.find(p => String(p.id) === form.product_id);
+  const toOptions = locations.filter(l => String(l.id) !== form.from_location_id);
+  const isValid = form.product_id && form.from_location_id && form.to_location_id && Number(form.quantity) > 0;
+  const overStock = selected && form.quantity && Number(form.quantity) > selected.on_hand;
 
-  // Find the full product object that is currently selected
-  // so we can display its current stock below the dropdown
-  const selectedProduct = products.find(
-    (p) => String(p.id) === form.product_id
-  );
-
-  // The "To" dropdown filters out whichever location is
-  // selected as "From" — you cannot transfer to the same place
-  const toLocationOptions = locations.filter(
-    (l) => String(l.id) !== form.from_location
-  );
-
-  // Form is only valid when ALL 4 fields are filled
-  // and from_location !== to_location
-  // and qty is a positive number
-  const isValid =
-    form.product_id &&
-    form.from_location &&
-    form.to_location &&
-    form.from_location !== form.to_location &&
-    Number(form.qty) > 0;
-
-  // Show a warning if entered qty exceeds current stock
-  const qtyExceedsStock =
-    selectedProduct &&
-    form.qty !== "" &&
-    Number(form.qty) > selectedProduct.stock;
-
-  // ─────────────────────────────────────────────
-  // SUBMIT the transfer
-  // ─────────────────────────────────────────────
   const submit = async () => {
     if (!isValid || busy) return;
-
-    setBusy(true);
-    setMsg(null);
-
+    setBusy(true); setMsg(null);
     try {
-      await api.post("/transfers", {
-        product_id:    Number(form.product_id),
-        from_location: Number(form.from_location),
-        to_location:   Number(form.to_location),
-        qty:           Number(form.qty),
+      await api.post('/transfers', {
+        product_id: Number(form.product_id),
+        from_location_id: Number(form.from_location_id),  // correct field name
+        to_location_id: Number(form.to_location_id),      // correct field name
+        quantity: Number(form.quantity),
       });
-
-      // Show success message with details
-      const fromName = locations.find(
-        (l) => String(l.id) === form.from_location
-      )?.name || "source";
-      const toName = locations.find(
-        (l) => String(l.id) === form.to_location
-      )?.name || "destination";
-
-      setMsg({
-        type: "success",
-        text: `Transfer of ${form.qty} ${selectedProduct?.uom || "units"} of "${selectedProduct?.name}" from ${fromName} to ${toName} recorded successfully.`,
-      });
-
-      // Reset the form after success
+      const from = locations.find(l => String(l.id) === form.from_location_id)?.name;
+      const to = locations.find(l => String(l.id) === form.to_location_id)?.name;
+      setMsg({ type: 'success', text: `Transferred ${form.quantity} ${selected?.uom || 'units'} of "${selected?.name}" from ${from} to ${to}.` });
       setForm(EMPTY);
     } catch (err) {
-      // Show the exact error message from the backend
-      const detail =
-        err.response?.data?.detail || "Transfer failed. Please try again.";
-      setMsg({ type: "error", text: detail });
-    } finally {
-      setBusy(false);
-    }
+      setMsg({ type: 'error', text: err.response?.data?.detail || 'Transfer failed' });
+    } finally { setBusy(false); }
   };
 
-  // ─────────────────────────────────────────────
-  // RESET the form and message
-  // ─────────────────────────────────────────────
-  const reset = () => {
-    setForm(EMPTY);
-    setMsg(null);
-  };
+  const card = { background: 'white', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '28px', maxWidth: '520px' };
+  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e0e4f0', fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: 'white' };
+  const label = { fontSize: '12px', fontWeight: 700, color: '#4a5278', display: 'block', marginBottom: '6px' };
 
-  // ─────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────
   return (
-    <div className="p-6 max-w-xl">
+    <div>
+      <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1d2e', marginBottom: '4px' }}>Internal Transfer</div>
+      <div style={{ fontSize: '13px', color: '#8892b8', marginBottom: '24px' }}>Move stock between locations — total quantity stays unchanged</div>
 
-      {/* ── PAGE HEADER ───────────────────────── */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-gray-400 hover:text-gray-600 text-sm mb-3 block"
-        >
-          ← Back
-        </button>
-        <h1 className="text-xl font-medium mb-1">Internal Transfer</h1>
-        <p className="text-sm text-gray-500">
-          Move stock from one location to another. The total quantity of the
-          product does not change — only the location changes.
-        </p>
-      </div>
-
-      {/* ── HOW IT WORKS INFO BOX ─────────────── */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl
-                      px-4 py-3 mb-6 text-xs text-blue-700 leading-relaxed">
-        <strong className="font-medium">How it works:</strong> Select a product,
-        choose where it is coming from and where it is going, enter the quantity.
-        The system records a ledger entry for both the source (−qty) and the
-        destination (+qty).
-      </div>
-
-      {/* ── SUCCESS / ERROR MESSAGE ───────────── */}
-      {msg && (
-        <div
-          className={`mb-5 px-4 py-3 rounded-lg text-sm leading-relaxed ${
-            msg.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}
-        >
-          {msg.text}
-          {/* Show a "Do another transfer" button after success */}
-          {msg.type === "success" && (
-            <button
-              onClick={reset}
-              className="block mt-2 text-xs underline text-green-600
-                         hover:text-green-800"
-            >
-              Do another transfer →
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── LOADING STATE ─────────────────────── */}
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading products and locations...</p>
-      ) : (
-
-        /* ── FORM ──────────────────────────────── */
-        <div className="flex flex-col gap-5">
-
-          {/* ── PRODUCT SELECTOR ──────────────── */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Product <span className="text-red-400">*</span>
-            </label>
-            <select
-              className="border border-gray-200 rounded-lg px-3 py-2
-                         text-sm w-full bg-white focus:outline-none
-                         focus:border-blue-400"
-              value={form.product_id}
-              onChange={(e) => {
-                setForm({ ...form, product_id: e.target.value, qty: "" });
-                setMsg(null);
-              }}
-            >
-              <option value="">Select a product...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — SKU: {p.sku}
-                </option>
-              ))}
-            </select>
-
-            {/* Show current stock when product is selected */}
-            {selectedProduct && (
-              <div className="mt-2 px-3 py-2 bg-gray-50 border border-gray-100
-                              rounded-lg text-xs text-gray-600 flex justify-between">
-                <span>Current total stock</span>
-                <span className="font-medium">
-                  {selectedProduct.stock} {selectedProduct.uom}
-                </span>
-              </div>
-            )}
+      <div style={card}>
+        {msg && (
+          <div style={{ marginBottom: '20px', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: msg.type === 'success' ? '#f0fdf4' : '#fff0f0', color: msg.type === 'success' ? '#15803d' : '#b91c1c', border: `1px solid ${msg.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
+            {msg.text}
+            {msg.type === 'success' && <button onClick={() => { setForm(EMPTY); setMsg(null); }} style={{ display: 'block', marginTop: '6px', fontSize: '12px', color: '#15803d', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Do another transfer →</button>}
           </div>
+        )}
 
-          {/* ── FROM / TO LOCATION SIDE BY SIDE ── */}
-          <div className="grid grid-cols-2 gap-4">
-
-            {/* FROM location */}
+        {loading ? <div style={{ color: '#8892b8', fontSize: '13px' }}>Loading...</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium mb-1.5">
-                From location <span className="text-red-400">*</span>
-              </label>
-              <select
-                className="border border-gray-200 rounded-lg px-3 py-2
-                           text-sm w-full bg-white focus:outline-none
-                           focus:border-blue-400"
-                value={form.from_location}
-                onChange={(e) => {
-                  // If the new from_location matches the current to_location,
-                  // clear to_location to avoid same-location transfer
-                  const newFrom = e.target.value;
-                  setForm({
-                    ...form,
-                    from_location: newFrom,
-                    to_location:
-                      form.to_location === newFrom ? "" : form.to_location,
-                  });
-                  setMsg(null);
-                }}
-              >
-                <option value="">Select...</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
+              <label style={label}>PRODUCT</label>
+              <select style={inputStyle} value={form.product_id} onChange={e => setForm({ ...EMPTY, product_id: e.target.value })}>
+                <option value="">Select a product...</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.name} — {p.sku}</option>)}
               </select>
-            </div>
-
-            {/* TO location */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                To location <span className="text-red-400">*</span>
-              </label>
-              <select
-                className="border border-gray-200 rounded-lg px-3 py-2
-                           text-sm w-full bg-white focus:outline-none
-                           focus:border-blue-400"
-                value={form.to_location}
-                onChange={(e) => {
-                  setForm({ ...form, to_location: e.target.value });
-                  setMsg(null);
-                }}
-                // Disabled until a from_location is chosen
-                disabled={!form.from_location}
-              >
-                <option value="">Select...</option>
-                {/* Exclude the FROM location from options */}
-                {toLocationOptions.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-              {!form.from_location && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Select "From" location first
-                </p>
+              {selected && (
+                <div style={{ marginTop: '6px', padding: '8px 12px', background: '#f8fafc', borderRadius: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#8892b8' }}>Available stock</span>
+                  <span style={{ fontWeight: 700 }}>{selected.on_hand} {selected.uom}</span>
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Same location warning — shown if somehow both are equal */}
-          {form.from_location &&
-            form.to_location &&
-            form.from_location === form.to_location && (
-              <p className="text-sm text-red-500 -mt-2">
-                From and To locations cannot be the same.
-              </p>
-            )}
-
-          {/* ── QUANTITY INPUT ────────────────── */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5">
-              Quantity <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder={
-                selectedProduct
-                  ? `Max: ${selectedProduct.stock} ${selectedProduct.uom}`
-                  : "Enter quantity"
-              }
-              className={`border rounded-lg px-3 py-2 text-sm w-full
-                          focus:outline-none focus:border-blue-400 ${
-                qtyExceedsStock
-                  ? "border-red-300 bg-red-50"  // red border if over stock
-                  : "border-gray-200 bg-white"
-              }`}
-              value={form.qty}
-              onChange={(e) => {
-                setForm({ ...form, qty: e.target.value });
-                setMsg(null);
-              }}
-            />
-
-            {/* Exceed stock warning */}
-            {qtyExceedsStock && (
-              <p className="text-xs text-red-500 mt-1">
-                Quantity exceeds available stock ({selectedProduct.stock}{" "}
-                {selectedProduct.uom}). The backend will reject this.
-              </p>
-            )}
-          </div>
-
-          {/* ── SUMMARY PREVIEW ──────────────── */}
-          {/* Only shows when all 4 fields are filled */}
-          {isValid && selectedProduct && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl
-                            px-4 py-3 text-sm text-gray-600">
-              <p className="font-medium text-gray-700 mb-1">Transfer summary</p>
-              <div className="flex flex-col gap-1 text-xs">
-                <div className="flex justify-between">
-                  <span>Product</span>
-                  <span className="font-medium text-gray-800">
-                    {selectedProduct.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>From</span>
-                  <span className="font-medium text-gray-800">
-                    {locations.find((l) => String(l.id) === form.from_location)
-                      ?.name || "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>To</span>
-                  <span className="font-medium text-gray-800">
-                    {locations.find((l) => String(l.id) === form.to_location)
-                      ?.name || "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Quantity</span>
-                  <span className="font-medium text-gray-800">
-                    {form.qty} {selectedProduct.uom}
-                  </span>
-                </div>
-                <div className="border-t border-gray-200 mt-1 pt-1 flex justify-between">
-                  <span>Stock after transfer</span>
-                  <span className="font-medium text-gray-800">
-                    {selectedProduct.stock} {selectedProduct.uom} (unchanged total)
-                  </span>
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={label}>FROM LOCATION</label>
+                <select style={inputStyle} value={form.from_location_id} onChange={e => setForm({ ...form, from_location_id: e.target.value, to_location_id: '' })}>
+                  <option value="">Select...</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={label}>TO LOCATION</label>
+                <select style={{ ...inputStyle, opacity: form.from_location_id ? 1 : 0.5 }} value={form.to_location_id} onChange={e => setForm({ ...form, to_location_id: e.target.value })} disabled={!form.from_location_id}>
+                  <option value="">Select...</option>
+                  {toOptions.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
               </div>
             </div>
-          )}
 
-          {/* ── ACTION BUTTONS ────────────────── */}
-          <div className="flex gap-3">
-            <button
-              onClick={submit}
-              disabled={!isValid || busy || qtyExceedsStock}
-              className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg
-                         text-sm font-medium hover:bg-blue-700
-                         disabled:opacity-40 disabled:cursor-not-allowed
-                         transition"
-            >
-              {busy ? "Submitting..." : "Submit Transfer"}
-            </button>
+            <div>
+              <label style={label}>QUANTITY</label>
+              <input type="number" min="1" placeholder={selected ? `Max: ${selected.on_hand} ${selected.uom}` : 'Enter quantity'}
+                style={{ ...inputStyle, borderColor: overStock ? '#fca5a5' : '#e0e4f0', background: overStock ? '#fff8f8' : 'white' }}
+                value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
+              {overStock && <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '4px' }}>Exceeds available stock ({selected.on_hand} {selected.uom})</div>}
+            </div>
 
-            {/* Reset button — only shows when form has data */}
-            {(form.product_id || form.from_location || form.qty) && (
-              <button
-                onClick={reset}
-                className="border border-gray-200 px-4 py-2.5 rounded-lg
-                           text-sm hover:bg-gray-50 transition"
-              >
-                Reset
-              </button>
+            {isValid && selected && (
+              <div style={{ padding: '14px 16px', background: '#f8fafc', border: '1px solid #e0e4f0', borderRadius: '10px', fontSize: '12px' }}>
+                <div style={{ fontWeight: 700, color: '#1a1d2e', marginBottom: '8px' }}>Transfer summary</div>
+                {[
+                  ['Product', selected.name],
+                  ['From', locations.find(l => String(l.id) === form.from_location_id)?.name],
+                  ['To', locations.find(l => String(l.id) === form.to_location_id)?.name],
+                  ['Quantity', `${form.quantity} ${selected.uom}`],
+                  ['Total stock after', `${selected.on_hand} ${selected.uom} (unchanged)`],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: '#8892b8' }}>{k}</span>
+                    <span style={{ fontWeight: 600, color: '#1a1d2e' }}>{v}</span>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
 
-        </div>
-      )}
+            <button onClick={submit} disabled={!isValid || busy || overStock} style={{
+              padding: '12px', borderRadius: '10px', background: 'linear-gradient(135deg, #0099ff, #0077dd)',
+              color: 'white', fontWeight: 700, fontSize: '14px', border: 'none',
+              cursor: !isValid || busy || overStock ? 'not-allowed' : 'pointer',
+              opacity: !isValid || busy || overStock ? 0.4 : 1
+            }}>
+              {busy ? 'Submitting...' : 'Submit Transfer'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,569 +1,257 @@
-import { useEffect, useState } from "react";
-import api from "../api/axios";
+import { useEffect, useState } from 'react';
+import api from '../api/axios';
+import { Plus, CheckCircle, Clock, FileText } from 'lucide-react';
 
-// ─────────────────────────────────────────────
-// Status badge — colour coded
-// ─────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
-  const styles = {
-    draft:     "bg-gray-100 text-gray-600",
-    waiting:   "bg-yellow-100 text-yellow-700",
-    ready:     "bg-blue-100 text-blue-700",
-    done:      "bg-green-100 text-green-700",
-    cancelled: "bg-red-100 text-red-600",
+  const config = {
+    draft:     { bg: '#f1f5f9', color: '#64748b', label: 'Draft' },
+    waiting:   { bg: '#fef9c3', color: '#a16207', label: 'Waiting' },
+    ready:     { bg: '#dbeafe', color: '#1d4ed8', label: 'Ready' },
+    done:      { bg: '#dcfce7', color: '#15803d', label: 'Done' },
+    cancelled: { bg: '#fee2e2', color: '#b91c1c', label: 'Cancelled' },
   };
   const key = status?.toLowerCase();
+  const c = config[key] || config.draft;
   return (
-    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full
-                      ${styles[key] || "bg-gray-100 text-gray-600"}`}>
-      {status || "—"}
+    <span style={{ background: c.bg, color: c.color, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+      {c.label}
     </span>
   );
 };
 
-// ─────────────────────────────────────────────
-// PRINT RECEIPT
-// Opens a new browser window with clean print layout
-// and auto-triggers the print dialog
-// ─────────────────────────────────────────────
-const printReceipt = (receipt) => {
-  const lines = (receipt.lines || [])
-    .map(
-      (l, i) => `
-        <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">
-            ${l.product_name || l.product_id || "Product " + (i + 1)}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;
-                     text-align:right;">${l.qty}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;
-                     text-align:right;">
-            ${l.unit_price ? "₹" + l.unit_price : "—"}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;
-                     text-align:right;">
-            ${l.unit_price ? "₹" + (l.qty * l.unit_price).toFixed(2) : "—"}
-          </td>
-        </tr>`
-    )
-    .join("");
-
-  const printWindow = window.open("", "_blank", "width=800,height=600");
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Receipt — ${receipt.reference}</title>
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          font-family: 'Segoe UI', Arial, sans-serif;
-          color: #1e293b;
-          padding: 40px;
-          font-size: 14px;
-        }
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 32px;
-          padding-bottom: 24px;
-          border-bottom: 2px solid #e2e8f0;
-        }
-        .company-name {
-          font-size: 22px;
-          font-weight: 700;
-          color: #1e40af;
-        }
-        .receipt-title {
-          font-size: 13px;
-          color: #64748b;
-          margin-top: 4px;
-        }
-        .receipt-ref {
-          font-size: 20px;
-          font-weight: 700;
-          text-align: right;
-        }
-        .receipt-date {
-          font-size: 12px;
-          color: #64748b;
-          text-align: right;
-          margin-top: 4px;
-        }
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 28px;
-          background: #f8fafc;
-          border-radius: 8px;
-          padding: 16px;
-        }
-        .info-label {
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #94a3b8;
-          margin-bottom: 4px;
-        }
-        .info-value {
-          font-size: 14px;
-          font-weight: 500;
-          color: #1e293b;
-        }
-        .status-done {
-          display: inline-block;
-          padding: 3px 10px;
-          border-radius: 999px;
-          font-size: 11px;
-          font-weight: 600;
-          background: #dcfce7;
-          color: #16a34a;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 24px;
-        }
-        thead tr {
-          background: #1e40af;
-          color: white;
-        }
-        thead th {
-          padding: 10px 12px;
-          text-align: left;
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        thead th:last-child,
-        thead th:nth-child(2),
-        thead th:nth-child(3) { text-align: right; }
-        tbody tr:last-child td { border-bottom: none; }
-        .footer {
-          margin-top: 40px;
-          padding-top: 20px;
-          border-top: 1px solid #e2e8f0;
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          color: #94a3b8;
-        }
-        @media print { button { display: none; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div>
-          <div class="company-name">CoreInventory</div>
-          <div class="receipt-title">Goods Receipt Note</div>
-        </div>
-        <div>
-          <div class="receipt-ref">${receipt.reference}</div>
-          <div class="receipt-date">
-            Date: ${
-              receipt.date
-                ? new Date(receipt.date).toLocaleDateString("en-IN", {
-                    day: "2-digit", month: "long", year: "numeric",
-                  })
-                : new Date().toLocaleDateString("en-IN", {
-                    day: "2-digit", month: "long", year: "numeric",
-                  })
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="info-grid">
-        <div>
-          <div class="info-label">Supplier / Contact</div>
-          <div class="info-value">
-            ${receipt.contact || receipt.supplier || "—"}
-          </div>
-        </div>
-        <div>
-          <div class="info-label">Status</div>
-          <div>
-            <span class="status-done">${receipt.status || "Done"}</span>
-          </div>
-        </div>
-        <div>
-          <div class="info-label">Reference</div>
-          <div class="info-value">${receipt.reference}</div>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th style="text-align:right">Qty</th>
-            <th style="text-align:right">Unit Price</th>
-            <th style="text-align:right">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${
-            lines ||
-            `<tr>
-              <td colspan="4"
-                  style="padding:16px;text-align:center;color:#94a3b8;">
-                No product lines
-              </td>
-            </tr>`
-          }
-        </tbody>
-      </table>
-
-      <div class="footer">
-        <span>Generated by CoreInventory System</span>
-        <span>Printed on ${new Date().toLocaleString("en-IN")}</span>
-      </div>
-
-      <script>
-        window.onload = function() { window.print(); }
-      </script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
-};
-
-// ─────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────
 export default function Receipts() {
-  const [receipts,   setReceipts]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [search,     setSearch]     = useState("");
-  const [selected,   setSelected]   = useState(null);
+  const [receipts, setReceipts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
   const [validating, setValidating] = useState(false);
-  const [toast,      setToast]      = useState(null);
+  const [toast, setToast] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [newReceipt, setNewReceipt] = useState({ contact: '', lines: [{ product_id: '', quantity: '' }] });
 
-  // ─────────────────────────────────────────────
-  // FETCH
-  // ─────────────────────────────────────────────
   const load = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await api.get("/receipts");
+      const res = await api.get('/receipts');
       setReceipts(res.data);
-    } catch (err) {
-      setError("Failed to load receipts. Is the backend running?");
-    } finally {
-      setLoading(false);
-    }
+    } catch { showToast('error', 'Failed to load receipts'); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
-
-  // ─────────────────────────────────────────────
-  // VALIDATE
-  // ─────────────────────────────────────────────
-  const validate = async (id) => {
-    setValidating(true);
-    setToast(null);
-    try {
-      await api.post(`/receipts/${id}/validate`);
-      showToast("success", "Receipt validated. Stock has been updated.");
-      setSelected(null);
-      load();
-    } catch (err) {
-      const detail = err.response?.data?.detail || "Validation failed.";
-      showToast("error", detail);
-    } finally {
-      setValidating(false);
-    }
-  };
+  useEffect(() => {
+    load();
+    api.get('/products/').then(r => setProducts(r.data));
+  }, []);
 
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ─────────────────────────────────────────────
-  // FILTER
-  // ─────────────────────────────────────────────
-  const filtered = receipts.filter((r) => {
+  const validate = async (id) => {
+    setValidating(true);
+    try {
+      await api.post(`/receipts/${id}/validate`);
+      showToast('success', 'Receipt validated! Stock increased.');
+      setSelected(null);
+      load();
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Validation failed');
+    } finally { setValidating(false); }
+  };
+
+  const createReceipt = async (e) => {
+    e.preventDefault();
+    try {
+      const lines = newReceipt.lines.filter(l => l.product_id && l.quantity);
+      await api.post('/receipts', {
+        contact: newReceipt.contact,
+        lines: lines.map(l => ({ product_id: Number(l.product_id), quantity: Number(l.quantity) }))
+      });
+      showToast('success', 'Receipt created successfully');
+      setShowCreate(false);
+      setNewReceipt({ contact: '', lines: [{ product_id: '', quantity: '' }] });
+      load();
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Failed to create receipt');
+    }
+  };
+
+  const filtered = receipts.filter(r => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (
-      r.reference?.toLowerCase().includes(q) ||
-      r.contact?.toLowerCase().includes(q) ||
-      r.supplier?.toLowerCase().includes(q) ||
-      r.status?.toLowerCase().includes(q)
-    );
+    return r.reference?.toLowerCase().includes(q) || r.contact?.toLowerCase().includes(q);
   });
 
-  // ─────────────────────────────────────────────
-  // DETAIL VIEW
-  // ─────────────────────────────────────────────
-  if (selected) {
-    return (
-      <div className="p-6 max-w-2xl">
-        <button
-          onClick={() => setSelected(null)}
-          className="text-gray-400 hover:text-gray-600 text-sm mb-5 block"
-        >
-          ← Back to Receipts
-        </button>
+  const card = { background: 'white', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' };
+  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e0e4f0', fontSize: '13px', fontFamily: 'inherit', outline: 'none' };
 
-        <div className="flex items-start justify-between mb-5">
+  // Detail view
+  if (selected) return (
+    <div>
+      <button onClick={() => setSelected(null)} style={{ color: '#8892b8', fontSize: '13px', marginBottom: '16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+        ← Back to Receipts
+      </button>
+      {toast && (
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: toast.type === 'success' ? '#f0fdf4' : '#fff0f0', color: toast.type === 'success' ? '#15803d' : '#b91c1c', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
+          {toast.text}
+        </div>
+      )}
+      <div style={{ ...card, padding: '28px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
-            <h1 className="text-xl font-medium mb-1">{selected.reference}</h1>
-            <p className="text-sm text-gray-500">
-              {selected.contact || selected.supplier || "No supplier"}
-            </p>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#1a1d2e' }}>{selected.reference}</div>
+            <div style={{ fontSize: '13px', color: '#8892b8', marginTop: '4px' }}>Contact: {selected.contact || '—'}</div>
           </div>
-          <button
-            onClick={() => printReceipt(selected)}
-            className="flex items-center gap-2 border border-gray-200
-                       bg-white px-4 py-2 rounded-lg text-sm font-medium
-                       hover:bg-gray-50 transition"
-          >
-            🖨️ Print Receipt
-          </button>
+          <StatusBadge status={selected.status} />
         </div>
-
-        {toast && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            toast.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}>
-            {toast.text}
-          </div>
-        )}
-
-        {/* Info cards */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {[
-            { label: "Status",    value: <StatusBadge status={selected.status} /> },
-            { label: "Reference", value: selected.reference },
-            { label: "Date",      value: selected.date
-                ? new Date(selected.date).toLocaleDateString("en-IN")
-                : "—"
-            },
-          ].map(({ label, value }) => (
-            <div key={label}
-                 className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-              <p className="text-xs text-gray-400 mb-1">{label}</p>
-              <div className="text-sm font-medium">{value}</div>
-            </div>
-          ))}
+        <div style={{ display: 'flex', gap: '24px', padding: '14px 16px', background: '#f8fafc', borderRadius: '10px', marginBottom: '20px' }}>
+          <div><div style={{ fontSize: '11px', color: '#8892b8', marginBottom: '2px' }}>DATE</div><div style={{ fontSize: '13px', fontWeight: 600 }}>{selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—'}</div></div>
+          <div><div style={{ fontSize: '11px', color: '#8892b8', marginBottom: '2px' }}>REFERENCE</div><div style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'DM Mono, monospace' }}>{selected.reference}</div></div>
         </div>
-
-        {/* Lines table */}
-        <h2 className="text-sm font-medium text-gray-600 mb-2">
-          Product Lines
-        </h2>
-        <div className="bg-white border border-gray-100 rounded-xl
-                        overflow-hidden mb-5 shadow-sm">
-          <table className="w-full text-sm">
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#4a5278', marginBottom: '10px' }}>PRODUCT LINES</div>
+        <div style={{ border: '1px solid #e8ebf4', borderRadius: '10px', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                <th className="px-4 py-2.5 text-xs text-gray-400 font-medium">
-                  Product
-                </th>
-                <th className="px-4 py-2.5 text-xs text-gray-400 font-medium text-right">
-                  Qty
-                </th>
-                <th className="px-4 py-2.5 text-xs text-gray-400 font-medium text-right">
-                  Unit Price
-                </th>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '10px 16px', textAlign: 'left', color: '#8892b8', fontWeight: 600 }}>Product</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', color: '#8892b8', fontWeight: 600 }}>Quantity</th>
               </tr>
             </thead>
             <tbody>
-              {(selected.lines || []).length === 0 ? (
-                <tr>
-                  <td colSpan={3}
-                      className="px-4 py-6 text-center text-gray-400 text-xs">
-                    No product lines
-                  </td>
-                </tr>
-              ) : (
-                selected.lines.map((line, i) => (
-                  <tr key={i} className="border-b border-gray-50 last:border-0">
-                    <td className="px-4 py-3 font-medium">
-                      {line.product_name || line.product_id}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {line.qty}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {line.unit_price ? `₹${line.unit_price}` : "—"}
-                    </td>
-                  </tr>
-                ))
+              {(selected.lines || []).length === 0 && (
+                <tr><td colSpan={2} style={{ padding: '16px', textAlign: 'center', color: '#8892b8' }}>No product lines</td></tr>
               )}
+              {(selected.lines || []).map((line, i) => (
+                <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1a1d2e' }}>{line.product_name || `Product #${line.product_id}`}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: '#4a5278' }}>{line.quantity}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-
-        {/* Buttons */}
-        <div className="flex gap-3">
-          {selected.status?.toLowerCase() !== "done" &&
-           selected.status?.toLowerCase() !== "cancelled" && (
-            <button
-              onClick={() => validate(selected.id)}
-              disabled={validating}
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-lg
-                         text-sm font-medium hover:bg-blue-700
-                         disabled:opacity-50 transition"
-            >
-              {validating ? "Validating..." : "Validate Receipt"}
-            </button>
-          )}
-          <button
-            onClick={() => printReceipt(selected)}
-            className="border border-gray-200 px-6 py-2.5 rounded-lg
-                       text-sm font-medium hover:bg-gray-50 transition"
-          >
-            🖨️ Print
-          </button>
+      </div>
+      {selected.status?.toLowerCase() !== 'done' && selected.status?.toLowerCase() !== 'cancelled' && (
+        <button onClick={() => validate(selected.id)} disabled={validating} style={{
+          padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #00c896, #00a878)',
+          color: 'white', fontWeight: 700, fontSize: '14px', border: 'none', cursor: 'pointer', opacity: validating ? 0.7 : 1
+        }}>
+          {validating ? 'Validating...' : '✓ Validate Receipt'}
+        </button>
+      )}
+      {selected.status?.toLowerCase() === 'done' && (
+        <div style={{ padding: '14px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', color: '#15803d', fontSize: '13px', fontWeight: 600 }}>
+          ✓ This receipt has been validated. Stock has been increased.
         </div>
+      )}
+    </div>
+  );
 
-        {selected.status?.toLowerCase() === "done" && (
-          <div className="mt-4 bg-green-50 border border-green-200
-                          rounded-lg px-4 py-3 text-sm text-green-700">
-            This receipt has been validated. Stock has been added.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // LIST VIEW
-  // ─────────────────────────────────────────────
+  // List view
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-medium text-slate-800 mb-1">Receipts</h1>
-        <p className="text-sm text-gray-500">
-          Manage incoming stock receipts from suppliers.
-        </p>
-      </div>
-
+    <div>
       {toast && (
-        <div className={`mb-5 px-4 py-3 rounded-lg text-sm ${
-          toast.type === "success"
-            ? "bg-green-50 text-green-700 border border-green-200"
-            : "bg-red-50 text-red-700 border border-red-200"
-        }`}>
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: toast.type === 'success' ? '#f0fdf4' : '#fff0f0', color: toast.type === 'success' ? '#15803d' : '#b91c1c', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
           {toast.text}
         </div>
       )}
 
-      {error && (
-        <div className="mb-5 px-4 py-3 rounded-lg text-sm bg-red-50
-                        text-red-700 border border-red-200">
-          {error}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1d2e' }}>Receipts</div>
+          <div style={{ fontSize: '13px', color: '#8892b8', marginTop: '2px' }}>Manage incoming stock from vendors</div>
         </div>
-      )}
+        <button onClick={() => setShowCreate(true)} style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+          background: 'linear-gradient(135deg, #00c896, #00a878)', color: 'white',
+          border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+        }}>
+          <Plus size={16} /> New Receipt
+        </button>
+      </div>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by reference or contact..."
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm
-                     w-72 focus:outline-none focus:border-blue-400 bg-white"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div style={{ marginBottom: '16px' }}>
+        <input placeholder="Search by reference or contact..." value={search} onChange={e => setSearch(e.target.value)}
+          style={{ ...inputStyle, width: '300px' }} />
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-400 py-8 text-center">
-          Loading receipts...
-        </p>
+        <div style={{ textAlign: 'center', padding: '60px', color: '#8892b8' }}>Loading receipts...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed
-                        border-gray-200 rounded-2xl">
-          <p className="text-gray-400 text-sm">
-            {receipts.length === 0
-              ? "No receipts yet."
-              : "No receipts match your search."}
-          </p>
+        <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed #e0e4f0', borderRadius: '16px', color: '#8892b8' }}>
+          {receipts.length === 0 ? 'No receipts yet. Create your first one.' : 'No receipts match your search.'}
         </div>
       ) : (
-        <div className="bg-white border border-gray-100 rounded-2xl
-                        shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+        <div style={card}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Reference
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Contact / Supplier
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Date
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Actions
-                </th>
+              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                {['Reference', 'Contact', 'Date', 'Status', 'Action'].map(h => (
+                  <th key={h} style={{ padding: '12px 20px', textAlign: 'left', color: '#8892b8', fontWeight: 600, fontSize: '11px', letterSpacing: '0.5px', background: '#f8fafc' }}>{h.toUpperCase()}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-b border-gray-50 hover:bg-gray-50
-                             transition cursor-pointer"
-                  onClick={() => setSelected(r)}
-                >
-                  <td className="px-5 py-3.5 font-medium text-blue-600">
-                    {r.reference}
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600">
-                    {r.contact || r.supplier || "—"}
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500 text-xs">
-                    {r.date
-                      ? new Date(r.date).toLocaleDateString("en-IN")
-                      : "—"}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex gap-2"
-                         onClick={(e) => e.stopPropagation()}>
-                      {r.status?.toLowerCase() !== "done" &&
-                       r.status?.toLowerCase() !== "cancelled" && (
-                        <button
-                          onClick={() => validate(r.id)}
-                          disabled={validating}
-                          className="text-xs bg-blue-50 text-blue-700
-                                     border border-blue-200 px-3 py-1
-                                     rounded-lg hover:bg-blue-100 transition"
-                        >
-                          Validate
-                        </button>
-                      )}
-                      <button
-                        onClick={() => printReceipt(r)}
-                        className="text-xs bg-gray-50 text-gray-600
-                                   border border-gray-200 px-3 py-1
-                                   rounded-lg hover:bg-gray-100 transition"
-                      >
-                        🖨️ Print
+              {filtered.map(r => (
+                <tr key={r.id} onClick={() => setSelected(r)} style={{ borderBottom: '1px solid #f8fafc', cursor: 'pointer', transition: 'background 0.1s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'white'}>
+                  <td style={{ padding: '14px 20px', fontWeight: 700, color: '#00a878', fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>{r.reference}</td>
+                  <td style={{ padding: '14px 20px', color: '#4a5278' }}>{r.contact || '—'}</td>
+                  <td style={{ padding: '14px 20px', color: '#8892b8', fontSize: '12px' }}>{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+                  <td style={{ padding: '14px 20px' }}><StatusBadge status={r.status} /></td>
+                  <td style={{ padding: '14px 20px' }}>
+                    {r.status?.toLowerCase() !== 'done' && r.status?.toLowerCase() !== 'cancelled' ? (
+                      <button onClick={e => { e.stopPropagation(); validate(r.id); }} disabled={validating}
+                        style={{ padding: '5px 12px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                        Validate
                       </button>
-                    </div>
+                    ) : <span style={{ color: '#c8cde0', fontSize: '12px' }}>—</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#1a1d2e', marginBottom: '20px' }}>New Receipt</div>
+            <form onSubmit={createReceipt}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#4a5278', display: 'block', marginBottom: '5px' }}>CONTACT / VENDOR</label>
+                <input placeholder="Vendor name" style={inputStyle} value={newReceipt.contact}
+                  onChange={e => setNewReceipt({ ...newReceipt, contact: e.target.value })} />
+              </div>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#4a5278', display: 'block', marginBottom: '8px' }}>PRODUCT LINES</label>
+                {newReceipt.lines.map((line, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 32px', gap: '8px', marginBottom: '8px' }}>
+                    <select style={{ ...inputStyle }} value={line.product_id}
+                      onChange={e => { const l = [...newReceipt.lines]; l[i].product_id = e.target.value; setNewReceipt({ ...newReceipt, lines: l }); }}>
+                      <option value="">Select product...</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <input type="number" placeholder="Qty" min="1" style={inputStyle} value={line.quantity}
+                      onChange={e => { const l = [...newReceipt.lines]; l[i].quantity = e.target.value; setNewReceipt({ ...newReceipt, lines: l }); }} />
+                    <button type="button" onClick={() => { const l = newReceipt.lines.filter((_, idx) => idx !== i); setNewReceipt({ ...newReceipt, lines: l.length ? l : [{ product_id: '', quantity: '' }] }); }}
+                      style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setNewReceipt({ ...newReceipt, lines: [...newReceipt.lines, { product_id: '', quantity: '' }] })}
+                  style={{ fontSize: '12px', color: '#00a878', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add line</button>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '10px 18px', border: '1px solid #e0e4f0', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                <button type="submit" style={{ padding: '10px 18px', background: 'linear-gradient(135deg, #00c896, #00a878)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Create Receipt</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

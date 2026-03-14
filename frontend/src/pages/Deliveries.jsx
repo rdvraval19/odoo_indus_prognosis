@@ -1,348 +1,247 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { Plus } from 'lucide-react';
 
-// ─────────────────────────────────────────────
-// Status badge — colour coded
-// ─────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
-  const styles = {
-    draft:     'bg-gray-100 text-gray-600',
-    waiting:   'bg-yellow-100 text-yellow-700',
-    ready:     'bg-blue-100 text-blue-700',
-    done:      'bg-green-100 text-green-700',
-    cancelled: 'bg-red-100 text-red-600',
+  const config = {
+    draft:     { bg: '#f1f5f9', color: '#64748b', label: 'Draft' },
+    waiting:   { bg: '#fef9c3', color: '#a16207', label: 'Waiting' },
+    ready:     { bg: '#dbeafe', color: '#1d4ed8', label: 'Ready' },
+    done:      { bg: '#dcfce7', color: '#15803d', label: 'Done' },
+    cancelled: { bg: '#fee2e2', color: '#b91c1c', label: 'Cancelled' },
   };
   const key = status?.toLowerCase();
+  const c = config[key] || config.draft;
   return (
-    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full
-                      ${styles[key] || 'bg-gray-100 text-gray-600'}`}>
-      {status || '—'}
+    <span style={{ background: c.bg, color: c.color, padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+      {c.label}
     </span>
   );
 };
 
-// ─────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────
 export default function Deliveries() {
   const [deliveries, setDeliveries] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [search,     setSearch]     = useState('');
-  const [selected,   setSelected]   = useState(null); // delivery open in detail view
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
   const [validating, setValidating] = useState(false);
-  const [toast,      setToast]      = useState(null); // { type, text }
+  const [toast, setToast] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [newDelivery, setNewDelivery] = useState({ contact: '', lines: [{ product_id: '', quantity: '' }] });
 
-  const navigate = useNavigate();
-
-  // ─────────────────────────────────────────────
-  // FETCH all deliveries
-  // ─────────────────────────────────────────────
   const load = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await api.get('/deliveries');
       setDeliveries(res.data);
-    } catch (err) {
-      setError('Failed to load deliveries. Is the backend running?');
-    } finally {
-      setLoading(false);
-    }
+    } catch { showToast('error', 'Failed to load deliveries'); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/products/').then(r => setProducts(r.data));
+  }, []);
 
-  // ─────────────────────────────────────────────
-  // VALIDATE a delivery
-  // ─────────────────────────────────────────────
-  const validate = async (id) => {
-    setValidating(true);
-    setToast(null);
-    try {
-      await api.post(`/deliveries/${id}/validate`);
-      showToast('success', 'Delivery validated successfully. Stock updated.');
-      setSelected(null);
-      load();
-    } catch (err) {
-      // Backend returns the exact product name that has insufficient stock
-      const detail = err.response?.data?.detail || 'Validation failed.';
-      showToast('error', detail);
-    } finally {
-      setValidating(false);
-    }
-  };
-
-  // ─────────────────────────────────────────────
-  // TOAST helper — auto hides after 4 seconds
-  // ─────────────────────────────────────────────
   const showToast = (type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ─────────────────────────────────────────────
-  // FILTER deliveries by search text
-  // ─────────────────────────────────────────────
-  const filtered = deliveries.filter((d) => {
+  const validate = async (id) => {
+    setValidating(true);
+    try {
+      await api.post(`/deliveries/${id}/validate`);
+      showToast('success', 'Delivery validated! Stock decreased.');
+      setSelected(null);
+      load();
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Validation failed');
+    } finally { setValidating(false); }
+  };
+
+  const createDelivery = async (e) => {
+    e.preventDefault();
+    try {
+      const lines = newDelivery.lines.filter(l => l.product_id && l.quantity);
+      await api.post('/deliveries', {
+        contact: newDelivery.contact,
+        lines: lines.map(l => ({ product_id: Number(l.product_id), quantity: Number(l.quantity) }))
+      });
+      showToast('success', 'Delivery created successfully');
+      setShowCreate(false);
+      setNewDelivery({ contact: '', lines: [{ product_id: '', quantity: '' }] });
+      load();
+    } catch (err) {
+      showToast('error', err.response?.data?.detail || 'Failed to create delivery');
+    }
+  };
+
+  const filtered = deliveries.filter(d => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (
-      d.reference?.toLowerCase().includes(q) ||
-      d.customer?.toLowerCase().includes(q) ||
-      d.status?.toLowerCase().includes(q)
-    );
+    return d.reference?.toLowerCase().includes(q) || d.contact?.toLowerCase().includes(q);
   });
 
-  // ─────────────────────────────────────────────
-  // RENDER — Detail view
-  // ─────────────────────────────────────────────
-  if (selected) {
-    return (
-      <div className="p-6 max-w-2xl">
+  const card = { background: 'white', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' };
+  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e0e4f0', fontSize: '13px', fontFamily: 'inherit', outline: 'none' };
 
-        {/* Back button */}
-        <button
-          onClick={() => setSelected(null)}
-          className="text-gray-400 hover:text-gray-600 text-sm mb-5 block"
-        >
-          ← Back to Deliveries
-        </button>
-
-        <h1 className="text-xl font-medium mb-1">{selected.reference}</h1>
-        <p className="text-sm text-gray-500 mb-5">
-          Customer: {selected.customer || '—'}
-        </p>
-
-        {/* Toast inside detail view */}
-        {toast && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            toast.type === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}>
-            {toast.text}
-          </div>
-        )}
-
-        {/* Header info */}
-        <div className="bg-gray-50 border border-gray-100 rounded-xl
-                        px-4 py-3 mb-5 flex gap-6 text-sm">
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Status</p>
-            <StatusBadge status={selected.status} />
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Reference</p>
-            <p className="font-medium">{selected.reference}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-0.5">Date</p>
-            <p className="font-medium">
-              {selected.date
-                ? new Date(selected.date).toLocaleDateString()
-                : '—'}
-            </p>
-          </div>
+  // Detail view
+  if (selected) return (
+    <div>
+      <button onClick={() => setSelected(null)} style={{ color: '#8892b8', fontSize: '13px', marginBottom: '16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+        ← Back to Deliveries
+      </button>
+      {toast && (
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: toast.type === 'success' ? '#f0fdf4' : '#fff0f0', color: toast.type === 'success' ? '#15803d' : '#b91c1c', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
+          {toast.text}
         </div>
-
-        {/* Product lines */}
-        <h2 className="text-sm font-medium text-gray-600 mb-2">
-          Product Lines
-        </h2>
-        <div className="bg-white border border-gray-100 rounded-xl
-                        overflow-hidden mb-5">
-          <table className="w-full text-sm">
+      )}
+      <div style={{ ...card, padding: '28px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#1a1d2e' }}>{selected.reference}</div>
+            <div style={{ fontSize: '13px', color: '#8892b8', marginTop: '4px' }}>Contact: {selected.contact || '—'}</div>
+          </div>
+          <StatusBadge status={selected.status} />
+        </div>
+        <div style={{ border: '1px solid #e8ebf4', borderRadius: '10px', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                <th className="px-4 py-2.5 text-xs text-gray-400 font-medium">
-                  Product
-                </th>
-                <th className="px-4 py-2.5 text-xs text-gray-400 font-medium text-right">
-                  Qty
-                </th>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '10px 16px', textAlign: 'left', color: '#8892b8', fontWeight: 600 }}>Product</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', color: '#8892b8', fontWeight: 600 }}>Quantity</th>
               </tr>
             </thead>
             <tbody>
               {(selected.lines || []).map((line, i) => (
-                <tr key={i} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-3 font-medium">
-                    {line.product_name || line.product_id}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-600">
-                    {line.qty}
-                  </td>
+                <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{line.product_name || `Product #${line.product_id}`}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: '#4a5278' }}>{line.quantity}</td>
                 </tr>
               ))}
-              {(!selected.lines || selected.lines.length === 0) && (
-                <tr>
-                  <td colSpan={2} className="px-4 py-4 text-center
-                                              text-gray-400 text-xs">
-                    No product lines
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
-
-        {/* Validate button — only show if not already done/cancelled */}
-        {selected.status?.toLowerCase() !== 'done' &&
-         selected.status?.toLowerCase() !== 'cancelled' && (
-          <button
-            onClick={() => validate(selected.id)}
-            disabled={validating}
-            className="bg-green-600 text-white px-6 py-2.5 rounded-lg
-                       text-sm font-medium hover:bg-green-700
-                       disabled:opacity-50 transition"
-          >
-            {validating ? 'Validating...' : 'Validate Delivery'}
-          </button>
-        )}
-
-        {selected.status?.toLowerCase() === 'done' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg
-                          px-4 py-3 text-sm text-green-700">
-            This delivery has been validated. Stock has been deducted.
-          </div>
-        )}
       </div>
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // RENDER — List view
-  // ─────────────────────────────────────────────
-  return (
-    <div className="p-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-slate-800 mb-1">
-            Deliveries
-          </h1>
-          <p className="text-sm text-gray-500">
-            Manage outgoing stock deliveries.
-          </p>
+      {selected.status?.toLowerCase() !== 'done' && selected.status?.toLowerCase() !== 'cancelled' && (
+        <button onClick={() => validate(selected.id)} disabled={validating} style={{
+          padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #7c6ff7, #5f57e8)',
+          color: 'white', fontWeight: 700, fontSize: '14px', border: 'none', cursor: 'pointer', opacity: validating ? 0.7 : 1
+        }}>
+          {validating ? 'Validating...' : '✓ Validate Delivery'}
+        </button>
+      )}
+      {selected.status?.toLowerCase() === 'done' && (
+        <div style={{ padding: '14px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', color: '#15803d', fontSize: '13px', fontWeight: 600 }}>
+          ✓ This delivery has been validated. Stock has been deducted.
         </div>
-      </div>
+      )}
+    </div>
+  );
 
-      {/* Toast — global */}
+  // List view
+  return (
+    <div>
       {toast && (
-        <div className={`mb-5 px-4 py-3 rounded-lg text-sm ${
-          toast.type === 'success'
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, background: toast.type === 'success' ? '#f0fdf4' : '#fff0f0', color: toast.type === 'success' ? '#15803d' : '#b91c1c', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
           {toast.text}
         </div>
       )}
-
-      {/* Error */}
-      {error && (
-        <div className="mb-5 px-4 py-3 rounded-lg text-sm bg-red-50
-                        text-red-700 border border-red-200">
-          {error}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1d2e' }}>Deliveries</div>
+          <div style={{ fontSize: '13px', color: '#8892b8', marginTop: '2px' }}>Manage outgoing stock to customers</div>
         </div>
-      )}
-
-      {/* Search */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by reference or customer..."
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm
-                     w-72 focus:outline-none focus:border-blue-400 bg-white"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <button onClick={() => setShowCreate(true)} style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+          background: 'linear-gradient(135deg, #7c6ff7, #5f57e8)', color: 'white',
+          border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer'
+        }}>
+          <Plus size={16} /> New Delivery
+        </button>
       </div>
 
-      {/* Loading */}
+      <div style={{ marginBottom: '16px' }}>
+        <input placeholder="Search by reference or contact..." value={search} onChange={e => setSearch(e.target.value)}
+          style={{ ...inputStyle, width: '300px' }} />
+      </div>
+
       {loading ? (
-        <p className="text-sm text-gray-400 py-8 text-center">
-          Loading deliveries...
-        </p>
+        <div style={{ textAlign: 'center', padding: '60px', color: '#8892b8' }}>Loading deliveries...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed
-                        border-gray-200 rounded-2xl">
-          <p className="text-gray-400 text-sm">
-            {deliveries.length === 0
-              ? 'No deliveries yet.'
-              : 'No deliveries match your search.'}
-          </p>
+        <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed #e0e4f0', borderRadius: '16px', color: '#8892b8' }}>
+          {deliveries.length === 0 ? 'No deliveries yet.' : 'No deliveries match your search.'}
         </div>
       ) : (
-        /* Table */
-        <div className="bg-white border border-gray-100 rounded-2xl
-                        shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
+        <div style={card}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Reference
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Customer
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Date
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Status
-                </th>
-                <th className="px-5 py-3 text-xs text-gray-400 font-medium">
-                  Action
-                </th>
+              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                {['Reference', 'Contact', 'Date', 'Status', 'Action'].map(h => (
+                  <th key={h} style={{ padding: '12px 20px', textAlign: 'left', color: '#8892b8', fontWeight: 600, fontSize: '11px', background: '#f8fafc' }}>{h.toUpperCase()}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((d) => (
-                <tr
-                  key={d.id}
-                  className="border-b border-gray-50 hover:bg-gray-50
-                             transition cursor-pointer"
-                  onClick={() => setSelected(d)}
-                >
-                  <td className="px-5 py-3.5 font-medium text-blue-600">
-                    {d.reference}
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600">
-                    {d.customer || '—'}
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500 text-xs">
-                    {d.date
-                      ? new Date(d.date).toLocaleDateString()
-                      : '—'}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge status={d.status} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    {d.status?.toLowerCase() !== 'done' &&
-                     d.status?.toLowerCase() !== 'cancelled' ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // prevent row click
-                          validate(d.id);
-                        }}
-                        disabled={validating}
-                        className="text-xs bg-green-50 text-green-700
-                                   border border-green-200 px-3 py-1
-                                   rounded-lg hover:bg-green-100 transition"
-                      >
+              {filtered.map(d => (
+                <tr key={d.id} onClick={() => setSelected(d)} style={{ borderBottom: '1px solid #f8fafc', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'white'}>
+                  <td style={{ padding: '14px 20px', fontWeight: 700, color: '#7c6ff7', fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>{d.reference}</td>
+                  <td style={{ padding: '14px 20px', color: '#4a5278' }}>{d.contact || '—'}</td>
+                  <td style={{ padding: '14px 20px', color: '#8892b8', fontSize: '12px' }}>{d.created_at ? new Date(d.created_at).toLocaleDateString() : '—'}</td>
+                  <td style={{ padding: '14px 20px' }}><StatusBadge status={d.status} /></td>
+                  <td style={{ padding: '14px 20px' }}>
+                    {d.status?.toLowerCase() !== 'done' && d.status?.toLowerCase() !== 'cancelled' ? (
+                      <button onClick={e => { e.stopPropagation(); validate(d.id); }} disabled={validating}
+                        style={{ padding: '5px 12px', background: '#f5f3ff', color: '#7c6ff7', border: '1px solid #ddd6fe', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
                         Validate
                       </button>
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
+                    ) : <span style={{ color: '#c8cde0', fontSize: '12px' }}>—</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showCreate && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#1a1d2e', marginBottom: '20px' }}>New Delivery</div>
+            <form onSubmit={createDelivery}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#4a5278', display: 'block', marginBottom: '5px' }}>CONTACT / CUSTOMER</label>
+                <input placeholder="Customer name" style={inputStyle} value={newDelivery.contact}
+                  onChange={e => setNewDelivery({ ...newDelivery, contact: e.target.value })} />
+              </div>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#4a5278', display: 'block', marginBottom: '8px' }}>PRODUCT LINES</label>
+                {newDelivery.lines.map((line, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 32px', gap: '8px', marginBottom: '8px' }}>
+                    <select style={inputStyle} value={line.product_id}
+                      onChange={e => { const l = [...newDelivery.lines]; l[i].product_id = e.target.value; setNewDelivery({ ...newDelivery, lines: l }); }}>
+                      <option value="">Select product...</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.name} (stock: {p.on_hand})</option>)}
+                    </select>
+                    <input type="number" placeholder="Qty" min="1" style={inputStyle} value={line.quantity}
+                      onChange={e => { const l = [...newDelivery.lines]; l[i].quantity = e.target.value; setNewDelivery({ ...newDelivery, lines: l }); }} />
+                    <button type="button" onClick={() => { const l = newDelivery.lines.filter((_, idx) => idx !== i); setNewDelivery({ ...newDelivery, lines: l.length ? l : [{ product_id: '', quantity: '' }] }); }}
+                      style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setNewDelivery({ ...newDelivery, lines: [...newDelivery.lines, { product_id: '', quantity: '' }] })}
+                  style={{ fontSize: '12px', color: '#7c6ff7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add line</button>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '10px 18px', border: '1px solid #e0e4f0', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                <button type="submit" style={{ padding: '10px 18px', background: 'linear-gradient(135deg, #7c6ff7, #5f57e8)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Create Delivery</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
