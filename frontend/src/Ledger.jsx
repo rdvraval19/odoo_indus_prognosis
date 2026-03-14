@@ -12,8 +12,7 @@ import LocationSettings from "./pages/settings/LocationSettings";
 import Transfer from "./pages/Transfer";
 import Adjustment from "./pages/Adjustment";
 import Receipts from "./pages/Receipts";
-import Deliveries from "./pages/Deliveries";
-import Ledger from "./pages/Ledger";
+import Ledgers from "./pages/Ledgers";
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuth();
@@ -46,7 +45,7 @@ function App() {
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="transfer" element={<Transfer />} />
             <Route path="adjustment" element={<Adjustment />} />
-            <Route path="ledgers" element={<Ledger />} />
+            <Route path="ledgers" element={<Ledgers />} />
 
             {/* Settings */}
             <Route path="settings" element={<Settings />} />
