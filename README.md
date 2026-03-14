@@ -132,10 +132,10 @@ odoo_indus_prognosis/
 
 | Member | Role | Responsibilities |
 |---|---|---|
-| Member 1 | Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats |
-| Member 2 | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page |
-| Member 3 | Frontend — Operations | Receipts, Deliveries, Move History pages |
-| Member 4 | Frontend — Settings + Deploy | Settings, Transfer, Adjustment, Seed data, Railway deployment |
+| Dipak Raval| Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats |
+| Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page |
+| Simran Patra| Frontend — Operations | Receipts, Deliveries, Move History pages |
+| Prachi Parmar | Frontend — Settings  | Settings, Transfer, Adjustment, Seed data |
 
 ---
 
@@ -310,10 +310,6 @@ Every action writes to the **StockLedger** table — the Move History page shows
 VITE_API_URL=http://localhost:8000
 ```
 
-### Frontend — `frontend/.env.production`
-
-```
-VITE_API_URL=https://your-backend.up.railway.app
 ```
 
 ### Backend — Railway dashboard Variables
@@ -325,53 +321,6 @@ SECRET_KEY=your-long-random-secret-key
 
 ---
 
-## Deployment
-
-This project is deployed on **Railway**.
-
-### Deploy backend
-
-```bash
-cd backend
-railway init   # name: coreinventory-backend
-railway up
-```
-
-Set in Railway dashboard → Variables:
-```
-DATABASE_URL = sqlite:///./prod.db
-SECRET_KEY   = your-secret-key
-```
-
-### Deploy frontend
-
-```bash
-cd frontend
-railway init   # name: coreinventory-frontend
-railway up
-```
-
-Set in Railway dashboard → Variables:
-```
-VITE_API_URL = https://your-backend.up.railway.app
-```
-
-### Run seed against production
-
-```bash
-# Edit seed.py line 8:
-BASE = "https://your-backend.up.railway.app"
-
-python backend/seed.py
-```
-
-### Verify deployment
-
-- Backend docs: `https://your-backend.up.railway.app/docs`
-- Frontend: `https://your-frontend.up.railway.app`
-- Login: `admin@demo.com` / `demo1234`
-
----
 
 ## Database Models
 
