@@ -46,6 +46,7 @@ CoreInventory is a modern warehouse management system that tracks every stock mo
 
 > **Dashboard — KPIs & Low Stock Alerts**
 <!-- Add screenshot here: ![Dashboard](screenshots/dashboard.png) -->
+![Dashboard](https://github.com/rdvraval19/odoo_indus_prognosis/blob/f3f66f99af182d7cd3ecf2a17cfa864ac53e1d37/readme_images/Screenshot%202026-03-14%20105012.png)
 
 > **Products — Catalogue with Real-Time Stock Levels**
 <!-- Add screenshot here: ![Products](screenshots/products.png) -->
