@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 
 const Login = () => {
@@ -39,9 +39,17 @@ const Login = () => {
             <input type="password" required className="w-full border p-3 rounded-xl outline-blue-600"
               onChange={(e) => setPassword(e.target.value)} />
           </div>
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
             Sign In
           </button>
+          <p className="text-center text-sm text-slate-500">
+            Don't have an account? <Link to="/signup" className="text-blue-600 font-semibold">Sign up</Link>
+          </p>
         </div>
       </form>
     </div>

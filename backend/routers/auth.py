@@ -6,6 +6,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from database import get_db
 from models import User
+import random
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,3 +51,48 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return {"access_token": token, "token_type": "bearer", "role": user.role, "user_id": user.id}
+
+# Temporary in-memory OTP store (fine for hackathon)
+otp_store = {}
+
+class SendOtpRequest(BaseModel):
+    email: str
+
+class VerifyOtpRequest(BaseModel):
+    email: str
+    otp: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
+@router.post("/send-otp")
+def send_otp(req: SendOtpRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+    otp = str(random.randint(100000, 999999))
+    otp_store[req.email] = otp
+    print(f"OTP for {req.email}: {otp}")  # shows in uvicorn terminal
+    return {"message": f"OTP sent to {req.email}. Check server console for demo OTP."}
+
+@router.post("/verify-otp")
+def verify_otp(req: VerifyOtpRequest):
+    stored = otp_store.get(req.email)
+    if not stored or stored != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+    return {"message": "OTP verified"}
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    stored = otp_store.get(req.email)
+    if not stored or stored != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.hashed_password = pwd_context.hash(req.new_password)
+    db.commit()
+    del otp_store[req.email]  # clear OTP after use
+    return {"message": "Password reset successful"}
