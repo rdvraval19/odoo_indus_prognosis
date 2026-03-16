@@ -21,7 +21,6 @@ A full-stack inventory management system built for the **Indus Hackathon 2026**.
 - [Pages & Routes](#pages--routes)
 - [Database Models](#database-models)
 - [Environment Variables](#environment-variables)
-- [Deployment](#deployment)
 - [License](#license)
 
 ---
