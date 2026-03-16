@@ -372,14 +372,6 @@ SECRET_KEY=your-long-random-secret-key
 
 ---
 
-## Deployment
-
-The app is deployed on **Railway**. Push to the main branch to trigger automatic deployment.
-
-- Backend service: set `DATABASE_URL` and `SECRET_KEY` in Railway dashboard
-- Frontend service: set `VITE_API_URL` pointing to the deployed backend URL
-
----
 
 ## License
 
