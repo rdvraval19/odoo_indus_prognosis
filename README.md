@@ -35,7 +35,7 @@ CoreInventory is a modern warehouse management system that tracks every stock mo
 ## Demo
 
 ### 🎬 Video Walkthrough
-[![Watch Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://drive.google.com/file/d/145mq6nVT3s3YekjPhct1HzRpkRWNXeIz/view?usp=sharing)
+[![Watch Demo Video](https://img.shields.io/badge/Watch-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://drive.google.com/file/d/19zD1qRyDcXLdj4PAQp0p3dpbiQlXqvsI/view?usp=drive_link)
  
 ### 📊 Presentation
 [![View PPT](https://img.shields.io/badge/View-Presentation-orange?style=for-the-badge&logo=microsoftpowerpoint)](https://drive.google.com/file/d/1vHqwbY70CDkhI6gIJM-EDF3a8nNmXxgB/view?usp=drive_link)
@@ -170,7 +170,7 @@ odoo_indus_prognosis/
 | Member | Role | Responsibilities | LinkedIn |
 |---|---|---|---|
 | Dipak Raval | Backend | Database models, Auth API, Products API, Stock ops APIs, Ledger, Stats | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/rdvraval19) |
-| Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://linkedin.com/in/your-link-here) |
+| Rahul Khara | Frontend — Shell | React scaffold, Login, Navbar, Layout, Dashboard, Products page | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rahul-khara-147b4a2b7/) |
 | Simran Patra | Frontend — Operations | Receipts, Deliveries, Move History pages | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)]([https://linkedin.com/in/your-link-here](https://www.linkedin.com/in/simran-patra)) |
 | Prachi Parmar | Frontend — Settings | Settings, Transfer, Adjustment, Seed data | [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin&logoColor=white)]([https://linkedin.com/in/your-link-here](https://www.linkedin.com/in/prachiparmar737)) |
 
