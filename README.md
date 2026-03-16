@@ -363,13 +363,6 @@ Every action writes to the **StockLedger** table — the Move History page shows
 VITE_API_URL=http://localhost:8000
 ```
 
-### Backend — Railway Dashboard Variables
-
-```
-DATABASE_URL=sqlite:///./prod.db
-SECRET_KEY=your-long-random-secret-key
-```
-
 ---
 
 
