@@ -116,7 +116,6 @@ CoreInventory is a modern warehouse management system that tracks every stock mo
 | HTTP Client | Axios |
 | Icons | Lucide React |
 | Routing | React Router DOM v6 |
-| Deployment | Railway |
 
 ---
 
